@@ -1,148 +1,58 @@
 # Gentask
 
-**Get your open-source pull requests reviewed fairly, and get paid for the best work.**
+**Get your open-source pull requests reviewed fairly — and get paid for the best work.**
 
-Gentask is a platform where maintainers put up to 15 pull requests into a paid review, and a panel of independent AI validators on [GenLayer](https://genlayer.com) picks the best one against a public rubric. The winner is paid, and everyone can see why.
+Gentask lets a maintainer bundle up to 15 existing GitHub pull requests into a paid **review batch** with an escrowed stablecoin reward and a locked rubric. Objective gates filter the PRs, then [GenLayer](https://genlayer.com)'s validator network — independent nodes each running their own LLM — ranks the survivors against the rubric by consensus. No single person, server, or model decides the winner.
 
+## How a batch works
 
----
+1. **Select** — maintainer adds up to 15 open PRs; each is pinned to its head commit SHA.
+2. **Lock** — the PR list and rubric become immutable on-chain.
+3. **Gates** — validators check 6 objective facts from the GitHub API under strict consensus: CI green, tests present, diff ≤ 1000 lines, not a draft, targets the default branch, unchanged since selection.
+4. **Judge** — validators independently read the real diffs, score every qualified PR 0–100 against the locked rubric, and must agree on the winner (`gl.eq_principle.prompt_comparative`).
+5. **Payout plan** — the contract computes winner-takes-all or a 50/30/20 top-3 split (settlement via bridge is a later phase).
 
-## What problem does it solve?
+Prompt-injection is defended at both ends: diffs are wrapped in untrusted-data markers in the judging prompt, and the contract strictly validates the LLM's ranking (every qualified PR exactly once, scores 0–100) and reverts otherwise.
 
-Paying for open-source work usually depends on one person deciding who gets rewarded. That can be slow, subjective, and hard to trust, for maintainers and contributors alike.
+## Repository layout
 
-Gentask makes the decision process:
-
-- **Fair:** the rules are fixed before anyone is judged.
-- **Transparent:** every ranking comes with a short reason.
-- **Neutral:** a panel of independent validators decides, not one person.
-- **Contestable:** if you disagree, you can appeal.
-
-## Who is it for?
-
-| If you are a... | Gentask gives you... |
+| Path | What it is |
 |---|---|
-| **Contributor** | A clear rank, written reasons for the result, and a way to get paid and appeal. |
-| **Maintainer** | A way to reward the best PR without reviewing and negotiating every payout yourself. |
-| **Sponsor** *(coming soon)* | A way to fund campaigns for the projects and themes you care about. |
+| `contracts/ReviewBatch.py` | The GenLayer intelligent contract — one deployed instance per batch |
+| `contracts/tests/` | 33 pytest tests that run the real contract against a fake `genlayer` module and fake GitHub |
+| `frontend/` | Next.js 16 app (TypeScript strict, Tailwind v4) with a `genlayer-js` connection layer |
+| `CLAUDE.md` | Architecture notes and roadmap |
 
-Everyone signs in as a **contributor** first. Maintainers switch to **maintainer mode** from the profile menu whenever they need it. You can use both.
+## Deployment
 
-## How it works
-
-### For maintainers
-
-1. **Connect a project.** Link your GitHub project and see its open pull requests.
-2. **Pick up to 15 PRs.** Choose the PRs you want reviewed. These are the only ones in the batch.
-3. **Set the rules.** Choose a rubric (bug fix, feature, docs, or design), the reward, the chain, and the deadline. The rubric **locks** once the batch is created.
-4. **Let the validators judge.** Gentask checks the basics, then the validators compare the remaining PRs.
-5. **Pay the winner.** The reward goes to the winning PR, or is split among the top 3 if you chose that mode.
-
-### For contributors
-
-1. **Sign in.** Connect your wallet and GitHub.
-2. **Get selected.** If a maintainer picks one of your PRs for a batch, you'll be notified.
-3. **See your result.** View your rank and the validators' reasons for it.
-4. **Get paid.** Link your wallet and claim your reward if you win.
-5. **Appeal if needed.** If you think the result is wrong, you can contest it.
-
-## How a decision is made
-
-```
-Maintainer selects up to 15 PRs
-            |
-   Each PR is locked to its exact commit
-            |
-   Basic checks (CI passing, tests, size)
-            |
-   Validators compare the remaining PRs
-            |
-   Ranking + reasons are published
-            |
-   Winner is paid  (appeals available)
-```
-
-**Basic checks.** A PR is removed if it fails any of these: CI not passing, no tests where the rubric needs them, an oversized change, a draft PR, or not targeting the main branch.
-
-**Locked commits.** Each selected PR is pinned to its exact commit when the batch is created, so code cannot be changed after selection.
-
-**Locked rules.** The rubric cannot be edited once the batch is created, so the maintainer cannot change the rules to favor someone.
-
-**Independent validators.** Several independent AI validators on GenLayer review the evidence and must reach agreement on the result.
-
-## Work types
-
-| Type | What is judged |
-|---|---|
-| Bug fix | Does it fix the root cause with a small, focused change and a test? |
-| Feature | Does it meet the spec, with tests and documentation? |
-| Docs / refactor | Is it accurate, clear, and does the project still build? |
-| Design / UI | Does it meet the brief and render correctly? Larger rewards may need maintainer sign-off. |
-
-## Campaigns and grants *(coming soon)*
-
-- **Campaigns:** sponsors such as chains, foundations, and DAOs fund a pool for a theme. Maintainers join and batches draw from the pool.
-- **Grants:** projects request funding in milestones, and each tranche is released when the delivered work meets the agreed criteria.
-
-## Frequently asked questions
-
-**Do contributors submit PRs on Gentask?**
-No. Gentask works on PRs that already exist in the maintainer's project. The maintainer selects which ones to review.
-
-**Why only 15 PRs?**
-A small batch keeps judging fast, focused, and affordable.
-
-**Can the maintainer pick a winner themselves?**
-No. The maintainer chooses which PRs enter the batch and sets the rubric, but the validators pick the winner.
-
-**What if I think the result is wrong?**
-You can file an appeal.
-
-**Is the AI always right?**
-No. AI judgment can make mistakes, which is why Gentask uses objective checks first, a locked rubric, several independent validators, and appeals.
-
-**Where is the money held?**
-During the demo, nowhere, because it uses dummy data. In the real version, rewards will be held in escrow on the chain the maintainer picks, and paid out when the result is final.
-
-## Try the demo
-
-The current version is a frontend demo with dummy data. You can explore both the contributor and maintainer apps.
+> **Deployed contract:** _pending — address will be added after Studio/testnet deployment_
 
 ```bash
-npm install
-npm run dev
+npm install -g genlayer
+genlayer deploy --contract contracts/ReviewBatch.py \
+  --args "owner/repo" "bug-fix" "Root cause identified\nTests added" 1000000000 "winner-takes-all"
 ```
 
-Then open [http://localhost:3000](http://localhost:3000).
+Constructor args: `repo`, `rubric_template` (`bug-fix|feature|docs|design`), `rubric_criteria` (newline-separated), `reward_pool` (base units), `payout_mode` (`winner-takes-all|top-3-split`).
 
-**Demo personas** on the sign-in page let you explore in one click. Each starts in the contributor app:
+## Quick start
 
-- **Tunde:** a contributor with no maintainer setup.
-- **Ada:** a contributor who has already set up maintainer mode.
-- **Zara:** both roles, with rich data in each.
+```bash
+# Contract tests (no GenLayer install needed)
+cd contracts && pip install pytest && python3 -m pytest tests/ -v
 
-To see the maintainer app, open the profile menu and choose **Switch to Maintainer**.
+# Frontend
+cd frontend && pnpm install && pnpm dev   # http://localhost:3000
+# To talk to a deployed contract: cp .env.local.example .env.local and set
+# NEXT_PUBLIC_GENLAYER_NETWORK + NEXT_PUBLIC_REVIEWBATCH_ADDRESS
+```
 
-## Roadmap
+## Status & roadmap
 
-- [x] Frontend demo with dummy data
-- [ ] Review Batch smart contract on GenLayer
-- [ ] Connect the frontend to the contract
-- [ ] Stablecoin escrow and payouts on an EVM chain
-- [ ] Campaigns and sponsor dashboard
-- [ ] Grants with milestone payouts
-- [ ] Contributor reputation and leaderboard
+**Working now:** the full contract lifecycle (add PRs → lock → gates → judge → payout plan) with test coverage, and a frontend connection layer (`frontend/lib/services/review-batch-contract.ts`) wrapping every contract method including deployment.
 
-## Built with
-
-- Next.js, TypeScript, Tailwind CSS, shadcn/ui, Motion
-- GenLayer Intelligent Contracts for judging *(coming soon)*
-- An EVM escrow contract for stablecoin payouts *(coming soon)*
-
-## Contributing
-
-Ideas and feedback are welcome. Open an issue to share a suggestion or report a problem. Code contributions will open once the first contract is in place.
+**Next:** Studio deployment on a real repo → batch-detail and create-batch pages on live contract data → a `BatchRegistry` factory contract so batches are discoverable → MetaMask connect → testnet Bradbury. Later: GenLayer built-in appeals, bridged escrow payouts, sponsor campaigns.
 
 ## License
 
-To be decided.
+MIT

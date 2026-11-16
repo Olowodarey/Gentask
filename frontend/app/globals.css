@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+@theme {
+  /* Colors - Modern web3 dark: near-black neutral, emerald primary, aqua accent */
+  --color-background: oklch(11% 0.008 285);
+  --color-foreground: oklch(97% 0.005 285);
+
+  --color-card: oklch(14.5% 0.01 285);
+  --color-card-foreground: oklch(97% 0.005 285);
+
+  --color-popover: oklch(14.5% 0.01 285);
+  --color-popover-foreground: oklch(97% 0.005 285);
+
+  /* Primary - Refined emerald */
+  --color-primary: oklch(72% 0.15 165);
+  --color-primary-foreground: oklch(13% 0.02 165);
+
+  --color-secondary: oklch(24% 0.015 285);
+  --color-secondary-foreground: oklch(97% 0.005 285);
+
+  --color-muted: oklch(21% 0.01 285);
+  --color-muted-foreground: oklch(70% 0.01 285);
+
+  --color-accent: oklch(26% 0.015 285);
+  --color-accent-foreground: oklch(97% 0.005 285);
+
+  /* Aqua - Secondary web3 accent for gradients and highlights */
+  --color-aqua: oklch(82% 0.14 190);
+  --color-aqua-foreground: oklch(15% 0.03 200);
+
+  --color-destructive: oklch(55% 0.22 25);
+  --color-destructive-foreground: oklch(98% 0.01 285);
+
+  --color-border: oklch(27% 0.02 285);
+  --color-input: oklch(27% 0.02 285);
+  --color-ring: oklch(72% 0.15 165);
+
+  /* Radius */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
+  }
+
+  /* Respect reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
