@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { WalletButton } from "@/components/shared/wallet-button";
@@ -26,9 +27,14 @@ export function Header() {
       <nav className="mx-auto flex max-w-7xl items-center justify-between p-4 lg:px-8" aria-label="Global">
         <div className="flex lg:flex-1">
           <Link href="/" className="-m-1.5 p-1.5">
-            <span className="text-2xl font-bold bg-gradient-to-r from-primary to-aqua bg-clip-text text-transparent">
-              Gentask
-            </span>
+            <Image
+              src="/gentask-logo.png"
+              alt="Gentask"
+              width={2098}
+              height={750}
+              priority
+              className="h-8 w-auto"
+            />
           </Link>
         </div>
         <div className="flex lg:hidden">
@@ -83,9 +89,13 @@ export function Header() {
           >
             <div className="flex items-center justify-between">
               <Link href="/" className="-m-1.5 p-1.5">
-                <span className="text-2xl font-bold bg-gradient-to-r from-primary to-aqua bg-clip-text text-transparent">
-                  Gentask
-                </span>
+                <Image
+                  src="/gentask-logo.png"
+                  alt="Gentask"
+                  width={2098}
+                  height={750}
+                  className="h-8 w-auto"
+                />
               </Link>
               <button
                 type="button"
