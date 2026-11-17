@@ -44,14 +44,25 @@ export default function CreateBatchPage() {
     setCriteria(RUBRIC_TEMPLATES[key].criteria.join("\n"));
   };
 
+  // Accept either "owner/name" or a full GitHub URL; normalize to "owner/name".
+  const normalizedRepo = (() => {
+    const parts = repo
+      .trim()
+      .replace(/^https?:\/\/(www\.)?github\.com\//i, "")
+      .replace(/\.git$/i, "")
+      .split("/")
+      .filter(Boolean);
+    return parts.length >= 2 ? `${parts[0]}/${parts[1]}` : "";
+  })();
+
   const valid =
-    /^[^/\s]+\/[^/\s]+$/.test(repo.trim()) &&
+    /^[^/\s]+\/[^/\s]+$/.test(normalizedRepo) &&
     criteria.trim().length > 0 &&
     Number(rewardPool) > 0;
 
   const deploy = async () => {
     if (!valid) {
-      toast.error('Enter a repo like "owner/name", criteria, and a reward pool.');
+      toast.error('Enter a repo like "owner/name" or its GitHub URL, criteria, and a reward pool.');
       return;
     }
     setDeploying(true);
@@ -60,14 +71,14 @@ export default function CreateBatchPage() {
       const code = await getContractSource();
       const { contractAddress } = await reviewBatchContract.deploy({
         code,
-        repo: repo.trim(),
+        repo: normalizedRepo,
         rubricTemplate: template,
         rubricCriteria: criteria.split("\n").map((c) => c.trim()).filter(Boolean),
         rewardPool: BigInt(rewardPool),
         payoutMode,
       });
       if (!contractAddress) throw new Error("Deployed, but could not read the contract address.");
-      rememberBatch(contractAddress, repo.trim());
+      rememberBatch(contractAddress, normalizedRepo);
       toast.success("Batch deployed!", { id: t });
       router.push(`/batches/${contractAddress}`);
     } catch (e) {
@@ -92,15 +103,26 @@ export default function CreateBatchPage() {
           <Card>
             <CardHeader>
               <CardTitle>GitHub repository</CardTitle>
-              <CardDescription>The repo whose pull requests this batch reviews.</CardDescription>
+              <CardDescription>
+                Paste the repo URL or type <span className="font-mono">owner/name</span>.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <Input
-                placeholder="owner/name  (e.g. Olowodarey/Stellar-K8s)"
+                placeholder="https://github.com/owner/name  or  owner/name"
                 value={repo}
                 onChange={(e) => setRepo(e.target.value)}
                 className="font-mono"
               />
+              {repo.trim() && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {normalizedRepo ? (
+                    <>Repo: <span className="font-mono text-foreground">{normalizedRepo}</span></>
+                  ) : (
+                    <span className="text-destructive">Couldn&apos;t read owner/name from that.</span>
+                  )}
+                </p>
+              )}
             </CardContent>
           </Card>
 
