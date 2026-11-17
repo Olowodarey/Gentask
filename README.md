@@ -25,7 +25,19 @@ Prompt-injection is defended at both ends: diffs are wrapped in untrusted-data m
 
 ## Deployment
 
-> **Deployed contract:** _pending — address will be added after Studio/testnet deployment_
+**Live deployment (GenLayer studionet):** [`0x2f16499eD158BDb053A34ADe7dA5208c113d6e9c`](https://studio.genlayer.com)
+
+This instance was deployed and driven through the **entire lifecycle** on-chain: `add_pr` (fetched the PR's real head SHA from GitHub under validator consensus) → `lock` → `run_gates` (read live CI/test/diff data and correctly disqualified a PR that failed the gates) → `judge`. Read its current state with:
+
+```bash
+genlayer network set studionet
+genlayer call 0x2f16499eD158BDb053A34ADe7dA5208c113d6e9c get_batch_info
+genlayer call 0x2f16499eD158BDb053A34ADe7dA5208c113d6e9c get_prs
+```
+
+> A **Bradbury testnet** address will be added once GenLayer's public testnet deploy endpoint is available (at time of writing, `rpc-bradbury.genlayer.com` is not processing contract deployments).
+
+Deploy your own instance:
 
 ```bash
 npm install -g genlayer
