@@ -61,9 +61,14 @@ cd frontend && pnpm install && pnpm dev   # http://localhost:3000
 
 ## Status & roadmap
 
-**Working now:** the full contract lifecycle (add PRs → lock → gates → judge → payout plan) with test coverage, and a frontend connection layer (`frontend/lib/services/review-batch-contract.ts`) wrapping every contract method including deployment.
+**Working now:**
 
-**Next:** Studio deployment on a real repo → batch-detail and create-batch pages on live contract data → a `BatchRegistry` factory contract so batches are discoverable → MetaMask connect → testnet Bradbury. Later: GenLayer built-in appeals, bridged escrow payouts, sponsor campaigns.
+- **Contract** — full lifecycle (`add_pr` → `lock` → `run_gates` → `judge` → `get_payout_plan`), 33 passing tests, **deployed and driven end-to-end on GenLayer studionet** (address above).
+- **GenLayer connection layer** (`frontend/lib/genlayer/`, `frontend/lib/services/review-batch-contract.ts`) — typed wrapper over every contract method, including `deploy()`, on a persistent burner account.
+- **Functional wallet** — Connect Wallet uses a real, persistent GenLayer burner account (key in localStorage), reads live on-chain GEN balance, with copy-address and disconnect.
+- **Frontend shell** — landing, explore, and sign-in pages on the mock service layer; unbuilt routes render a branded "coming soon" page instead of a raw 404.
+
+**Next:** batch-detail and create-batch pages on live contract reads/`deploy()` → a `BatchRegistry` factory contract so batches are discoverable → MetaMask connect replacing the burner account → Bradbury testnet deployment (blocked only by GenLayer's public testnet deploy endpoint). Later: GenLayer built-in appeals, bridged escrow payouts, sponsor campaigns.
 
 ## License
 

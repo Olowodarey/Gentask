@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { WalletState } from "@/lib/types";
 import { walletService } from "@/lib/services/wallet-service";
+import { NETWORK } from "@/lib/genlayer/client";
 
 interface WalletStore extends WalletState {
   connect: () => Promise<void>;
@@ -13,7 +14,7 @@ export const useWalletStore = create<WalletStore>((set) => ({
   connected: false,
   address: null,
   balance: 0,
-  chainId: "base",
+  chainId: NETWORK,
   isConnecting: false,
 
   connect: async () => {
@@ -33,7 +34,7 @@ export const useWalletStore = create<WalletStore>((set) => ({
       connected: false,
       address: null,
       balance: 0,
-      chainId: "base",
+      chainId: NETWORK,
     });
   },
 

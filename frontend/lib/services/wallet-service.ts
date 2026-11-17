@@ -1,37 +1,37 @@
 import { WalletState } from "@/lib/types";
+import {
+  NETWORK,
+  getBurnerAddress,
+  getGenBalance,
+} from "@/lib/genlayer/client";
 
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
+/**
+ * Wallet service backed by the GenLayer burner account.
+ *
+ * The burner key persists in localStorage (see lib/genlayer/client.ts), so the
+ * same address is returned across reloads. This is a real on-chain account that
+ * signs real transactions; replace with MetaMask via `client.connect()` later.
+ */
 export const walletService = {
   async connect(): Promise<WalletState> {
-    await delay(500);
-    
-    // Mock wallet connection
-    return {
-      connected: true,
-      address: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb8",
-      balance: 1250.50,
-      chainId: "base",
-    };
+    const address = getBurnerAddress();
+    const balance = await getGenBalance(address);
+    return { connected: true, address, balance, chainId: NETWORK };
   },
 
   async disconnect(): Promise<void> {
-    await delay(200);
-    // Mock wallet disconnection
+    // Burner stays in localStorage; disconnect only clears the UI session.
   },
 
   async getBalance(address: string): Promise<number> {
-    await delay(300);
-    return 1250.50;
+    return getGenBalance(address);
   },
 
-  async switchChain(chainId: string): Promise<void> {
-    await delay(400);
-    // Mock chain switching
+  async switchChain(_chainId: string): Promise<void> {
+    // Network is fixed by NEXT_PUBLIC_GENLAYER_NETWORK until MetaMask lands.
   },
 
-  async linkWallet(contributorId: string, address: string): Promise<void> {
-    await delay(500);
-    // Mock wallet linking for contributor
+  async linkWallet(_contributorId: string, _address: string): Promise<void> {
+    // No-op until the contributor wallet registry exists on-chain.
   },
 };
