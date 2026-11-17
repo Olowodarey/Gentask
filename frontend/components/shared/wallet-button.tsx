@@ -11,24 +11,70 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useWallet } from "@/hooks/use-wallet";
+import { useMounted } from "@/hooks/use-mounted";
 import { formatAddress } from "@/lib/utils/format";
 import { NETWORK_LABEL, type GenLayerNetwork } from "@/lib/genlayer/client";
-import { Wallet, Copy, Check, LogOut } from "lucide-react";
+import { Wallet, Copy, Check, LogOut, Loader2 } from "lucide-react";
 
 export function WalletButton() {
-  const { connected, address, balance, chainId, connect, disconnect, isConnecting } = useWallet();
+  const {
+    connected,
+    address,
+    balance,
+    chainId,
+    mode,
+    hasMetaMask,
+    connect,
+    connectMetaMask,
+    connectBurner,
+    disconnect,
+    isConnecting,
+  } = useWallet();
+  const mounted = useMounted();
   const [copied, setCopied] = useState(false);
 
+  // Disconnected
   if (!connected || !address) {
+    // Before mount we can't know if MetaMask is present; render a stable button.
+    if (!mounted || !hasMetaMask) {
+      return (
+        <Button onClick={connect} disabled={isConnecting}>
+          {isConnecting ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Wallet className="h-4 w-4 mr-2" />
+          )}
+          {isConnecting ? "Connecting..." : "Connect Wallet"}
+        </Button>
+      );
+    }
     return (
-      <Button onClick={connect} disabled={isConnecting}>
-        <Wallet className="h-4 w-4 mr-2" />
-        {isConnecting ? "Connecting..." : "Connect Wallet"}
-      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button disabled={isConnecting}>
+            {isConnecting ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Wallet className="h-4 w-4 mr-2" />
+            )}
+            {isConnecting ? "Connecting..." : "Connect Wallet"}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-60">
+          <DropdownMenuItem onClick={connectMetaMask}>
+            <Wallet className="h-4 w-4 mr-2 text-primary" /> MetaMask
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={connectBurner}>
+            <Wallet className="h-4 w-4 mr-2" /> Burner wallet
+            <span className="ml-auto text-[10px] text-muted-foreground">no setup</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     );
   }
 
   const networkLabel = NETWORK_LABEL[chainId as GenLayerNetwork] ?? chainId;
+  const modeLabel = mode === "metamask" ? "MetaMask" : "Burner wallet";
 
   const copyAddress = async () => {
     await navigator.clipboard.writeText(address);
@@ -46,7 +92,7 @@ export function WalletButton() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuLabel className="flex items-center justify-between">
-          <span>Burner wallet</span>
+          <span>{modeLabel}</span>
           <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
             {networkLabel}
           </span>
@@ -57,6 +103,11 @@ export function WalletButton() {
           <div className="font-mono">{balance.toFixed(4)} GEN</div>
         </div>
         <DropdownMenuSeparator />
+        {mode === "burner" && mounted && hasMetaMask && (
+          <DropdownMenuItem onClick={connectMetaMask}>
+            <Wallet className="h-4 w-4 mr-2 text-primary" /> Switch to MetaMask
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onClick={copyAddress}>
           {copied ? (
             <>

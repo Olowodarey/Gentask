@@ -32,25 +32,84 @@ function getBurnerKey(): `0x${string}` {
   return key;
 }
 
-let client: ReturnType<typeof createClient> | null = null;
+export type WalletMode = "metamask" | "burner";
+
+type EthereumProvider = {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+  on?: (event: string, handler: (...args: unknown[]) => void) => void;
+};
+
+let burnerClient: ReturnType<typeof createClient> | null = null;
+let metamaskClientInstance: ReturnType<typeof createClient> | null = null;
+let activeMode: WalletMode = "burner";
 let burnerAddress: `0x${string}` | null = null;
 
-/**
- * Lazily created GenLayer client with a persistent burner account.
- * Swap the account for a wallet-backed one when MetaMask connect lands.
- */
-export function getGenLayerClient() {
-  if (!client) {
+function makeBurnerClient() {
+  if (!burnerClient) {
     const account = createAccount(getBurnerKey());
     burnerAddress = account.address as `0x${string}`;
-    client = createClient({ chain: CHAINS[NETWORK], account });
+    burnerClient = createClient({ chain: CHAINS[NETWORK], account });
   }
-  return client;
+  return burnerClient;
+}
+
+/**
+ * The GenLayer client used for all reads and writes. Returns the MetaMask-backed
+ * client once connected, otherwise the persistent burner client. Reads work on
+ * either; writes are signed by whichever account is active.
+ */
+export function getGenLayerClient() {
+  if (activeMode === "metamask" && metamaskClientInstance) return metamaskClientInstance;
+  return makeBurnerClient();
+}
+
+export function getWalletMode(): WalletMode {
+  return activeMode;
+}
+
+function getEthereum(): EthereumProvider | null {
+  if (typeof window === "undefined") return null;
+  return (window as unknown as { ethereum?: EthereumProvider }).ethereum ?? null;
+}
+
+export function hasMetaMask(): boolean {
+  return getEthereum() !== null;
+}
+
+/**
+ * Connect MetaMask (via the GenLayer Snap) and make it the active signer.
+ * Throws if MetaMask is unavailable or the user rejects — callers fall back to
+ * the burner account.
+ */
+export async function connectMetaMask(): Promise<string> {
+  const eth = getEthereum();
+  if (!eth) throw new Error("MetaMask not detected");
+  const accounts = (await eth.request({ method: "eth_requestAccounts" })) as string[];
+  const address = accounts?.[0];
+  if (!address) throw new Error("No MetaMask account authorized");
+
+  const mm = createClient({
+    chain: CHAINS[NETWORK],
+    account: address as `0x${string}`,
+    provider: eth as never,
+  });
+  // Connect the GenLayer MetaMask Snap so it can sign GenVM transactions.
+  await mm.connect();
+
+  metamaskClientInstance = mm;
+  activeMode = "metamask";
+  return address;
+}
+
+/** Switch the active signer back to the burner account. */
+export function useBurnerWallet(): void {
+  activeMode = "burner";
+  metamaskClientInstance = null;
 }
 
 /** The persistent burner wallet address (stable across reloads). */
 export function getBurnerAddress(): string {
-  if (!burnerAddress) getGenLayerClient();
+  if (!burnerAddress) makeBurnerClient();
   return burnerAddress as string;
 }
 

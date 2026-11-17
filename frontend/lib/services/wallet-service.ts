@@ -1,26 +1,51 @@
 import { WalletState } from "@/lib/types";
 import {
   NETWORK,
+  type WalletMode,
   getBurnerAddress,
   getGenBalance,
+  connectMetaMask,
+  useBurnerWallet,
+  hasMetaMask,
 } from "@/lib/genlayer/client";
 
+export type ConnectResult = WalletState & { mode: WalletMode };
+
 /**
- * Wallet service backed by the GenLayer burner account.
- *
- * The burner key persists in localStorage (see lib/genlayer/client.ts), so the
- * same address is returned across reloads. This is a real on-chain account that
- * signs real transactions; replace with MetaMask via `client.connect()` later.
+ * Wallet service. Prefers MetaMask (via the GenLayer Snap); falls back to a
+ * persistent in-browser burner account when MetaMask is unavailable or declined.
+ * Either way the result is a real on-chain account that signs transactions.
  */
 export const walletService = {
-  async connect(): Promise<WalletState> {
+  hasMetaMask,
+
+  async connectBurner(): Promise<ConnectResult> {
+    useBurnerWallet();
     const address = getBurnerAddress();
     const balance = await getGenBalance(address);
-    return { connected: true, address, balance, chainId: NETWORK };
+    return { connected: true, address, balance, chainId: NETWORK, mode: "burner" };
+  },
+
+  async connectMetaMask(): Promise<ConnectResult> {
+    const address = await connectMetaMask();
+    const balance = await getGenBalance(address);
+    return { connected: true, address, balance, chainId: NETWORK, mode: "metamask" };
+  },
+
+  /** Try MetaMask first, fall back to the burner account on any failure. */
+  async connect(): Promise<ConnectResult> {
+    if (hasMetaMask()) {
+      try {
+        return await this.connectMetaMask();
+      } catch {
+        // user rejected or snap unavailable — fall through to burner
+      }
+    }
+    return this.connectBurner();
   },
 
   async disconnect(): Promise<void> {
-    // Burner stays in localStorage; disconnect only clears the UI session.
+    useBurnerWallet();
   },
 
   async getBalance(address: string): Promise<number> {
@@ -28,7 +53,7 @@ export const walletService = {
   },
 
   async switchChain(_chainId: string): Promise<void> {
-    // Network is fixed by NEXT_PUBLIC_GENLAYER_NETWORK until MetaMask lands.
+    // Network is fixed by NEXT_PUBLIC_GENLAYER_NETWORK.
   },
 
   async linkWallet(_contributorId: string, _address: string): Promise<void> {
