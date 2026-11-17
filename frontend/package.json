@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "sync-contract": "node scripts/sync-contract.mjs",
+    "predev": "node scripts/sync-contract.mjs",
+    "prebuild": "node scripts/sync-contract.mjs"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.1",

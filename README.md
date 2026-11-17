@@ -21,7 +21,6 @@ Prompt-injection is defended at both ends: diffs are wrapped in untrusted-data m
 | `contracts/ReviewBatch.py` | The GenLayer intelligent contract — one deployed instance per batch |
 | `contracts/tests/` | 33 pytest tests that run the real contract against a fake `genlayer` module and fake GitHub |
 | `frontend/` | Next.js 16 app (TypeScript strict, Tailwind v4) with a `genlayer-js` connection layer |
-| `CLAUDE.md` | Architecture notes and roadmap |
 
 ## Deployment
 
@@ -58,6 +57,16 @@ cd frontend && pnpm install && pnpm dev   # http://localhost:3000
 # To talk to a deployed contract: cp .env.local.example .env.local and set
 # NEXT_PUBLIC_GENLAYER_NETWORK + NEXT_PUBLIC_REVIEWBATCH_ADDRESS
 ```
+
+### Drive the contract from the UI (for reviewers)
+
+No wallet setup needed — the app uses a persistent in-browser GenLayer burner account on studionet.
+
+1. **`/batches/create`** — deploy a fresh batch (repo + rubric + reward). You become its maintainer.
+2. On the batch page, paste GitHub **PR URLs** → **Lock** → **Run gates** on each PR → **Judge**.
+3. Watch the gates read live GitHub data and the validators rank the qualified PRs, then see the on-chain payout plan.
+
+Or open **`/batches`** and hit "Try the live contract" to read the already-deployed batch end-to-end.
 
 ## Status & roadmap
 

@@ -119,12 +119,17 @@ export const reviewBatchContract = {
         params.payoutMode,
       ],
     })) as TransactionHash;
-    const receipt = await client.waitForTransactionReceipt({
+    const receipt = (await client.waitForTransactionReceipt({
       hash: txHash,
       status: TransactionStatus.ACCEPTED,
-    });
+    })) as Record<string, unknown>;
+    const data = (receipt.data ?? {}) as Record<string, unknown>;
     const contractAddress =
-      (receipt.data as { contract_address?: string } | undefined)?.contract_address ?? null;
+      (data.contract_address as string) ??
+      (data.contractAddress as string) ??
+      (receipt.contractAddress as string) ??
+      (receipt.contract_address as string) ??
+      null;
     return { txHash, contractAddress };
   },
 };
