@@ -32,15 +32,12 @@ function getBurnerKey(): `0x${string}` {
   return key;
 }
 
-export type WalletMode = "metamask" | "burner";
+import type { EIP1193Provider } from "./wallets";
 
-type EthereumProvider = {
-  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
-  on?: (event: string, handler: (...args: unknown[]) => void) => void;
-};
+export type WalletMode = "injected" | "burner";
 
 let burnerClient: ReturnType<typeof createClient> | null = null;
-let metamaskClientInstance: ReturnType<typeof createClient> | null = null;
+let injectedClient: ReturnType<typeof createClient> | null = null;
 let activeMode: WalletMode = "burner";
 let burnerAddress: `0x${string}` | null = null;
 
@@ -54,12 +51,12 @@ function makeBurnerClient() {
 }
 
 /**
- * The GenLayer client used for all reads and writes. Returns the MetaMask-backed
+ * The GenLayer client used for all reads and writes. Returns the injected-wallet
  * client once connected, otherwise the persistent burner client. Reads work on
  * either; writes are signed by whichever account is active.
  */
 export function getGenLayerClient() {
-  if (activeMode === "metamask" && metamaskClientInstance) return metamaskClientInstance;
+  if (activeMode === "injected" && injectedClient) return injectedClient;
   return makeBurnerClient();
 }
 
@@ -67,44 +64,61 @@ export function getWalletMode(): WalletMode {
   return activeMode;
 }
 
-function getEthereum(): EthereumProvider | null {
-  if (typeof window === "undefined") return null;
-  return (window as unknown as { ethereum?: EthereumProvider }).ethereum ?? null;
+function chainAddParams() {
+  const chain = CHAINS[NETWORK] as unknown as {
+    id: number;
+    name: string;
+    nativeCurrency: { name: string; symbol: string; decimals: number };
+  };
+  return {
+    chainId: "0x" + chain.id.toString(16),
+    chainName: chain.name,
+    nativeCurrency: chain.nativeCurrency,
+    rpcUrls: [rpcUrl()],
+  };
 }
 
-export function hasMetaMask(): boolean {
-  return getEthereum() !== null;
+/** Ensure the wallet is on the GenLayer network (add it if unknown). Best-effort. */
+async function ensureChain(provider: EIP1193Provider): Promise<void> {
+  const params = chainAddParams();
+  try {
+    await provider.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: params.chainId }],
+    });
+  } catch (err) {
+    const code = (err as { code?: number })?.code;
+    if (code === 4902 || code === -32603) {
+      await provider.request({ method: "wallet_addEthereumChain", params: [params] });
+    }
+    // other errors (e.g. user rejected switch) are non-fatal for reads/display
+  }
 }
 
 /**
- * Connect MetaMask (via the GenLayer Snap) and make it the active signer.
- * Throws if MetaMask is unavailable or the user rejects — callers fall back to
- * the burner account.
+ * Connect an injected EVM wallet (any EIP-1193 provider: MetaMask, OKX, Rabby,
+ * Coinbase, …) and make it the active signer. Throws if the user rejects.
  */
-export async function connectMetaMask(): Promise<string> {
-  const eth = getEthereum();
-  if (!eth) throw new Error("MetaMask not detected");
-  const accounts = (await eth.request({ method: "eth_requestAccounts" })) as string[];
+export async function connectInjected(provider: EIP1193Provider): Promise<string> {
+  const accounts = (await provider.request({ method: "eth_requestAccounts" })) as string[];
   const address = accounts?.[0];
-  if (!address) throw new Error("No MetaMask account authorized");
+  if (!address) throw new Error("No account authorized");
 
-  const mm = createClient({
+  await ensureChain(provider);
+
+  injectedClient = createClient({
     chain: CHAINS[NETWORK],
     account: address as `0x${string}`,
-    provider: eth as never,
+    provider: provider as never,
   });
-  // Connect the GenLayer MetaMask Snap so it can sign GenVM transactions.
-  await mm.connect();
-
-  metamaskClientInstance = mm;
-  activeMode = "metamask";
+  activeMode = "injected";
   return address;
 }
 
 /** Switch the active signer back to the burner account. */
 export function useBurnerWallet(): void {
   activeMode = "burner";
-  metamaskClientInstance = null;
+  injectedClient = null;
 }
 
 /** The persistent burner wallet address (stable across reloads). */

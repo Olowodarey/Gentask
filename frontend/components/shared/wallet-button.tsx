@@ -1,5 +1,6 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,8 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useWallet } from "@/hooks/use-wallet";
-import { useMounted } from "@/hooks/use-mounted";
+import { useWallet, useInjectedWallets } from "@/hooks/use-wallet";
 import { formatAddress } from "@/lib/utils/format";
 import { NETWORK_LABEL, type GenLayerNetwork } from "@/lib/genlayer/client";
 import { Wallet, Copy, Check, LogOut, Loader2 } from "lucide-react";
@@ -22,32 +22,17 @@ export function WalletButton() {
     address,
     balance,
     chainId,
-    mode,
-    hasMetaMask,
-    connect,
-    connectMetaMask,
+    walletName,
+    connectWallet,
     connectBurner,
     disconnect,
     isConnecting,
   } = useWallet();
-  const mounted = useMounted();
+  const injected = useInjectedWallets();
   const [copied, setCopied] = useState(false);
 
   // Disconnected
   if (!connected || !address) {
-    // Before mount we can't know if MetaMask is present; render a stable button.
-    if (!mounted || !hasMetaMask) {
-      return (
-        <Button onClick={connect} disabled={isConnecting}>
-          {isConnecting ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <Wallet className="h-4 w-4 mr-2" />
-          )}
-          {isConnecting ? "Connecting..." : "Connect Wallet"}
-        </Button>
-      );
-    }
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -61,9 +46,23 @@ export function WalletButton() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-60">
-          <DropdownMenuItem onClick={connectMetaMask}>
-            <Wallet className="h-4 w-4 mr-2 text-primary" /> MetaMask
-          </DropdownMenuItem>
+          <DropdownMenuLabel>Choose a wallet</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {injected.map((w) => (
+            <DropdownMenuItem
+              key={w.info.uuid}
+              onClick={() => connectWallet(w.provider, w.info.name)}
+            >
+              <img src={w.info.icon} alt="" className="h-4 w-4 mr-2 rounded" />
+              {w.info.name}
+            </DropdownMenuItem>
+          ))}
+          {injected.length === 0 && (
+            <div className="px-2 py-1.5 text-xs text-muted-foreground">
+              No EVM wallet detected in this browser.
+            </div>
+          )}
+          <DropdownMenuSeparator />
           <DropdownMenuItem onClick={connectBurner}>
             <Wallet className="h-4 w-4 mr-2" /> Burner wallet
             <span className="ml-auto text-[10px] text-muted-foreground">no setup</span>
@@ -74,7 +73,6 @@ export function WalletButton() {
   }
 
   const networkLabel = NETWORK_LABEL[chainId as GenLayerNetwork] ?? chainId;
-  const modeLabel = mode === "metamask" ? "MetaMask" : "Burner wallet";
 
   const copyAddress = async () => {
     await navigator.clipboard.writeText(address);
@@ -92,7 +90,7 @@ export function WalletButton() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuLabel className="flex items-center justify-between">
-          <span>{modeLabel}</span>
+          <span>{walletName ?? "Wallet"}</span>
           <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
             {networkLabel}
           </span>
@@ -103,11 +101,6 @@ export function WalletButton() {
           <div className="font-mono">{balance.toFixed(4)} GEN</div>
         </div>
         <DropdownMenuSeparator />
-        {mode === "burner" && mounted && hasMetaMask && (
-          <DropdownMenuItem onClick={connectMetaMask}>
-            <Wallet className="h-4 w-4 mr-2 text-primary" /> Switch to MetaMask
-          </DropdownMenuItem>
-        )}
         <DropdownMenuItem onClick={copyAddress}>
           {copied ? (
             <>

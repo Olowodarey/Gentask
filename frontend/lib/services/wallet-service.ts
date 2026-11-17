@@ -4,44 +4,37 @@ import {
   type WalletMode,
   getBurnerAddress,
   getGenBalance,
-  connectMetaMask,
+  connectInjected,
   useBurnerWallet,
-  hasMetaMask,
 } from "@/lib/genlayer/client";
+import type { EIP1193Provider } from "@/lib/genlayer/wallets";
 
-export type ConnectResult = WalletState & { mode: WalletMode };
+export type ConnectResult = WalletState & { mode: WalletMode; walletName: string };
 
 /**
- * Wallet service. Prefers MetaMask (via the GenLayer Snap); falls back to a
- * persistent in-browser burner account when MetaMask is unavailable or declined.
- * Either way the result is a real on-chain account that signs transactions.
+ * Wallet service. Connects any injected EVM wallet (MetaMask, OKX, Rabby,
+ * Coinbase, … via EIP-6963), or a persistent in-browser burner account that
+ * needs no setup. Either way the result is a real on-chain account that signs.
  */
 export const walletService = {
-  hasMetaMask,
+  async connectWallet(provider: EIP1193Provider, name: string): Promise<ConnectResult> {
+    const address = await connectInjected(provider);
+    const balance = await getGenBalance(address);
+    return { connected: true, address, balance, chainId: NETWORK, mode: "injected", walletName: name };
+  },
 
   async connectBurner(): Promise<ConnectResult> {
     useBurnerWallet();
     const address = getBurnerAddress();
     const balance = await getGenBalance(address);
-    return { connected: true, address, balance, chainId: NETWORK, mode: "burner" };
-  },
-
-  async connectMetaMask(): Promise<ConnectResult> {
-    const address = await connectMetaMask();
-    const balance = await getGenBalance(address);
-    return { connected: true, address, balance, chainId: NETWORK, mode: "metamask" };
-  },
-
-  /** Try MetaMask first, fall back to the burner account on any failure. */
-  async connect(): Promise<ConnectResult> {
-    if (hasMetaMask()) {
-      try {
-        return await this.connectMetaMask();
-      } catch {
-        // user rejected or snap unavailable — fall through to burner
-      }
-    }
-    return this.connectBurner();
+    return {
+      connected: true,
+      address,
+      balance,
+      chainId: NETWORK,
+      mode: "burner",
+      walletName: "Burner wallet",
+    };
   },
 
   async disconnect(): Promise<void> {

@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { useWalletStore } from "@/lib/store/wallet-store";
+import { discoverWallets, type DiscoveredWallet } from "@/lib/genlayer/wallets";
 
 export function useWallet() {
   const {
@@ -7,9 +9,8 @@ export function useWallet() {
     balance,
     chainId,
     mode,
-    hasMetaMask,
-    connect,
-    connectMetaMask,
+    walletName,
+    connectWallet,
     connectBurner,
     disconnect,
     switchChain,
@@ -22,12 +23,18 @@ export function useWallet() {
     balance,
     chainId,
     mode,
-    hasMetaMask,
-    connect,
-    connectMetaMask,
+    walletName,
+    connectWallet,
     connectBurner,
     disconnect,
     switchChain,
     isConnecting,
   };
+}
+
+/** Discovered injected EVM wallets (EIP-6963), updated as wallets announce. */
+export function useInjectedWallets(): DiscoveredWallet[] {
+  const [wallets, setWallets] = useState<DiscoveredWallet[]>([]);
+  useEffect(() => discoverWallets(setWallets), []);
+  return wallets;
 }

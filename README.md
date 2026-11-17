@@ -74,7 +74,7 @@ Or open **`/batches`** and hit "Try the live contract" to read the already-deplo
 
 - **Contract** — full lifecycle (`add_pr` → `lock` → `run_gates` → `judge` → `get_payout_plan`), 33 passing tests, **deployed and driven end-to-end on GenLayer studionet** (address above).
 - **GenLayer connection layer** (`frontend/lib/genlayer/`, `frontend/lib/services/review-batch-contract.ts`) — typed wrapper over every contract method, including `deploy()`, on a persistent burner account.
-- **Functional wallet** — Connect Wallet uses **MetaMask** (via the GenLayer Snap) when available, and falls back to a persistent in-browser **burner account** otherwise, so reviewers need zero setup. Reads live on-chain GEN balance, with copy-address and disconnect.
+- **Functional wallet** — Connect Wallet discovers **any injected EVM wallet** (MetaMask, OKX, Rabby, Coinbase… via EIP-6963), adds/switches to the GenLayer network, and signs via the wallet's provider. Falls back to a persistent in-browser **burner account** so reviewers need zero setup. Reads live on-chain GEN balance, with copy-address and disconnect.
 - **Frontend shell** — landing, explore, and sign-in pages on the mock service layer; unbuilt routes render a branded "coming soon" page instead of a raw 404.
 
 **Next:** a `BatchRegistry` factory contract so batches are discoverable on-chain (the UI currently tracks deployed addresses in localStorage) → Bradbury testnet deployment (blocked only by GenLayer's public testnet deploy endpoint). Later: GenLayer built-in appeals, bridged escrow payouts, sponsor campaigns.
