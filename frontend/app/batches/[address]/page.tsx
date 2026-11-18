@@ -180,12 +180,13 @@ function BatchDetail({ params }: { params: PageProps<"/batches/[address]">["para
           <CardContent className="space-y-3">
             <div className="flex gap-2">
               <Input
+                data-testid="add-pr-input"
                 placeholder={`https://github.com/${info.repo}/pull/1`}
                 value={prUrl}
                 onChange={(e) => setPrUrl(e.target.value)}
                 className="font-mono"
               />
-              <Button onClick={addPr} disabled={busy !== null}>
+              <Button data-testid="add-pr-btn" onClick={addPr} disabled={busy !== null}>
                 {busy === "Add PR" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
               </Button>
             </div>

@@ -22,6 +22,7 @@ Prompt-injection is defended at both ends: diffs are wrapped in untrusted-data m
 | `contracts/tests/` | 33 pytest tests that run the real contract against a fake `genlayer` module and fake GitHub |
 | `frontend/` | Next.js 16 app (TypeScript strict, Tailwind v4) with a `genlayer-js` connection layer |
 
+
 ## Deployment
 
 **Live deployment (GenLayer studionet):** [`0x2f16499eD158BDb053A34ADe7dA5208c113d6e9c`](https://studio.genlayer.com)
